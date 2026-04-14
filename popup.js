@@ -3,6 +3,9 @@
 import { showStatus } from './utils.js';
 import { sendProfiles } from './api.js';
 import { extractFunc } from './extractor.js';
+import { initListManager } from './list-manager.js';
+
+initListManager();
 
 document.getElementById('open-talinem').addEventListener('click', async () => {
   try {
