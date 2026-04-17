@@ -197,6 +197,14 @@ button:disabled {
   background: #fff;
 }
 
+.field-error {
+  margin-top: 8px;
+  min-height: 16px;
+  color: #b42318;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .modal-actions {
   display: flex;
   gap: 16px;

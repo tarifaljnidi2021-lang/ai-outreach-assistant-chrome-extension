@@ -6,6 +6,7 @@ export const initListManager = () => {
   const createListButton = document.getElementById('create-list');
   const createListModal = document.getElementById('create-list-modal');
   const listNameInput = document.getElementById('list-name-input');
+  const listNameError = document.getElementById('list-name-error');
   const modalCancelButton = document.getElementById('modal-cancel');
   const modalCreateButton = document.getElementById('modal-create');
 
@@ -24,6 +25,7 @@ export const initListManager = () => {
   const modalController = createListModalController({
     modalElement: createListModal,
     inputElement: listNameInput,
+    errorElement: listNameError,
     cancelButton: modalCancelButton,
     createButton: modalCreateButton,
     onCreate: async (listName) => {
