@@ -1,11 +1,26 @@
 // popup.js - Main popup logic
 
 import { showStatus } from './utils.js';
-import { sendProfiles } from './api.js';
+import { getListProspects, sendProfiles } from './api.js';
 import { extractFunc } from './extractor.js';
 import { initListManager } from './list-manager.js';
 
 initListManager();
+
+(async () => {
+  try {
+    const lists = await getListProspects();
+    const select = document.getElementById('list-select');
+    lists.forEach(list => {
+      const option = document.createElement('option');
+      option.value =  list.name;
+      option.textContent = list.name;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Failed to load prospects lists:', error);
+  }
+})();
 
 document.getElementById('open-talinem').addEventListener('click', async () => {
   try {

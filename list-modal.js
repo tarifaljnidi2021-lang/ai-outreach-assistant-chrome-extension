@@ -16,15 +16,20 @@ export const createListModalController = ({
     modalElement.classList.add('hidden');
   };
 
-  const submit = () => {
+  const submit = async () => {
     const listName = inputElement.value.trim();
 
     if (!listName) {
       return;
     }
 
-    onCreate(listName);
-    close();
+    createButton.disabled = true;
+    try {
+      await onCreate(listName);
+      close();
+    } finally {
+      createButton.disabled = false;
+    }
   };
 
   cancelButton.addEventListener('click', close);

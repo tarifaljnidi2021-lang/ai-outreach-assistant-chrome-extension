@@ -1,4 +1,5 @@
 import { createListModalController } from './list-modal.js';
+import { createProspectsList } from './api.js';
 
 export const initListManager = () => {
   const listSelect = document.getElementById('list-select');
@@ -25,7 +26,10 @@ export const initListManager = () => {
     inputElement: listNameInput,
     cancelButton: modalCancelButton,
     createButton: modalCreateButton,
-    onCreate: addListOption
+    onCreate: async (listName) => {
+      await createProspectsList(listName);
+      addListOption(listName);
+    }
   });
 
   createListButton.addEventListener('click', modalController.open);
