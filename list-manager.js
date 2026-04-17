@@ -14,12 +14,12 @@ export const initListManager = () => {
     return;
   }
 
-  const addListOption = (listName) => {
+  const addListOption = (list) => {
     const option = document.createElement('option');
-    option.value = listName;
-    option.textContent = listName;
+    option.value = String(list.id);
+    option.textContent = list.name;
     listSelect.appendChild(option);
-    listSelect.value = listName;
+    listSelect.value = String(list.id);
   };
 
   const modalController = createListModalController({
@@ -29,8 +29,8 @@ export const initListManager = () => {
     cancelButton: modalCancelButton,
     createButton: modalCreateButton,
     onCreate: async (listName) => {
-      await createProspectsList(listName);
-      addListOption(listName);
+      const createdList = await createProspectsList(listName);
+      addListOption(createdList);
     }
   });
 

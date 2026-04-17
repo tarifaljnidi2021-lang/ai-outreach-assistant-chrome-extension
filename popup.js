@@ -13,7 +13,7 @@ initListManager();
     const select = document.getElementById('list-select');
     lists.forEach(list => {
       const option = document.createElement('option');
-      option.value =  list.name;
+      option.value = String(list.id);
       option.textContent = list.name;
       select.appendChild(option);
     });
@@ -34,7 +34,14 @@ document.getElementById('open-talinem').addEventListener('click', async () => {
 document.getElementById('extract').addEventListener('click', async () => {
   const apiEndpoint = 'http://localhost:3000/extract';
   const countInput = document.getElementById('count');
+  const listSelect = document.getElementById('list-select');
+  const selectedListId = listSelect.value;
   const maxCount = Math.max(1, parseInt(countInput.value, 10) || 100);
+
+  if (!selectedListId) {
+    showStatus('Select a list first.', 'error');
+    return;
+  }
 
   showStatus('Extracting profiles...', 'loading');
   document.getElementById('extract').disabled = true;
@@ -61,7 +68,7 @@ document.getElementById('extract').addEventListener('click', async () => {
 
     showStatus(`Sending ${profiles.length} profiles...`, 'loading');
 
-    const sentCount = await sendProfiles(profiles, apiEndpoint);
+    const sentCount = await sendProfiles(profiles, apiEndpoint, selectedListId);
 
     showStatus(`✓ Sent ${sentCount} profiles`, 'success');
 

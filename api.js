@@ -33,9 +33,10 @@ export async function createProspectsList(name) {
   return response.json();
 }
 
-export async function sendProfiles(profiles, apiEndpoint) {
+export async function sendProfiles(profiles, apiEndpoint, listId) {
   const payload = {
     count: profiles.length,
+    listId,
     profiles
   };
 
