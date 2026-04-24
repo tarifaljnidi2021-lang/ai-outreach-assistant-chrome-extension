@@ -33,11 +33,32 @@ export const extractFunc = async (maxCountArg = 100) => {
 
       if (!name || name.length < 2) return;
 
+      let imageSrc = '';
+      let node = linkEl;
+
+      // Walk up a few levels and try to find the card's profile photo.
+      for (let i = 0; i < 8 && node && !imageSrc; i++) {
+        node = node.parentElement;
+        if (!node) break;
+
+        const imgs = Array.from(node.querySelectorAll('img[src]'));
+
+        const bestImg =
+          imgs.find(img => /profile-(displayphoto|framedphoto)/i.test(img.src || '')) ||
+          imgs.find(img => ((img.alt || '').trim().toLowerCase() === name.toLowerCase())) ||
+          imgs.find(img => (img.src || '').startsWith('http'));
+
+        if (bestImg) {
+          imageSrc = bestImg.src || '';
+        }
+      }
+
       seen.add(profileUrl);
 
       results.push({
         name,
-        profile_url: profileUrl
+        profile_url: profileUrl,
+        img_src: imageSrc
       });
     });
 

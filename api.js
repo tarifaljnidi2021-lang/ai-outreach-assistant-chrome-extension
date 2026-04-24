@@ -1,7 +1,7 @@
 // api.js - Functions for API communication
 
 export async function getListProspects() {
-  const apiEndpoint = 'http://localhost:3000/prospects';
+  const apiEndpoint = 'http://localhost:3000/listprospects';
 
   const response = await fetch(apiEndpoint, {
     method: 'GET',
@@ -17,7 +17,7 @@ export async function getListProspects() {
 }
 
 export async function createProspectsList(name) {
-  const apiEndpoint = 'http://localhost:3000/prospects';
+  const apiEndpoint = 'http://localhost:3000/listprospects';
 
   const response = await fetch(apiEndpoint, {
     method: 'POST',
