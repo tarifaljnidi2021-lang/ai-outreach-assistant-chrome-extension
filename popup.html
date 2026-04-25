@@ -4,7 +4,18 @@
     <link rel="stylesheet" href="popup.css">
   </head>
   <body>
-    <div class="panel">
+    <!-- Auth Section -->
+    <div id="auth-section" class="panel hidden">
+      <h2>Login</h2>
+      <input id="login-email" type="email" placeholder="Email" autocomplete="email" />
+      <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="login-btn" type="button">Log In</button>
+      <button id="signup-link-btn" type="button" class="btn-link">Don't have an account? Sign up</button>
+      <div id="auth-status"></div>
+    </div>
+
+    <!-- Main Section -->
+    <div class="panel hidden main-section">
       <div class="header-row">
         <div class="brand">
           <div>
@@ -15,7 +26,7 @@
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel hidden main-section">
       <label for="list-select">Select or create a list</label>
       <div class="list-row">
         <select id="list-select">
@@ -27,6 +38,7 @@
       <label for="count">Number to import</label>
       <input id="count" type="number" min="1" value="100" />
       <button id="extract">Extract & Send to API</button>
+      <button id="logout-btn" type="button" class="btn-secondary">Log Out</button>
       <div id="status"></div>
     </div>
 

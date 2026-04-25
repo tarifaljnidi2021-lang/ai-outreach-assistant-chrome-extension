@@ -1,81 +1,21 @@
-// popup.js - Main popup logic
+// popup.js - Bootstrap wiring for popup modules
 
-import { showStatus } from './utils.js';
-import { getListProspects, sendProfiles } from './api.js';
-import { extractFunc } from './extractor.js';
 import { initListManager } from './list-manager.js';
+import { loadLists } from './popup-lists.js';
+import { initMainActionHandlers } from './popup-actions.js';
+import { initAuthHandlers, checkAuth } from './popup-auth.js';
 
-initListManager();
+let listManagerInitialized = false;
 
-(async () => {
-  try {
-    const lists = await getListProspects();
-    const select = document.getElementById('list-select');
-    lists.forEach(list => {
-      const option = document.createElement('option');
-      option.value = String(list.id);
-      option.textContent = list.name;
-      select.appendChild(option);
-    });
-  } catch (error) {
-    console.error('Failed to load prospects lists:', error);
+async function onAuthenticated() {
+  if (!listManagerInitialized) {
+    initListManager();
+    listManagerInitialized = true;
   }
-})();
+  await loadLists();
+}
 
-document.getElementById('open-talinem').addEventListener('click', async () => {
-  try {
-    await chrome.tabs.create({ url: 'https://talinem.com' });
-  } catch (error) {
-    console.error(error);
-    showStatus(`Error: ${error.message}`, 'error');
-  }
-});
+initAuthHandlers({ onAuthenticated });
+initMainActionHandlers();
+checkAuth({ onAuthenticated });
 
-document.getElementById('extract').addEventListener('click', async () => {
-  const apiEndpoint = 'http://localhost:3000/extract';
-  const countInput = document.getElementById('count');
-  const listSelect = document.getElementById('list-select');
-  const selectedListId = listSelect.value;
-  const maxCount = Math.max(1, parseInt(countInput.value, 10) || 100);
-
-  if (!selectedListId) {
-    showStatus('Select a list first.', 'error');
-    return;
-  }
-
-  showStatus('Extracting profiles...', 'loading');
-  document.getElementById('extract').disabled = true;
-
-  try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true
-    });
-
-    const [result] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: extractFunc,
-      args: [maxCount]
-    });
-
-    const profiles = result?.result || [];
-
-    if (!profiles.length) {
-      showStatus('No profiles found. Scroll down and try again.', 'error');
-      document.getElementById('extract').disabled = false;
-      return;
-    }
-
-    showStatus(`Sending ${profiles.length} profiles...`, 'loading');
-
-    const sentCount = await sendProfiles(profiles, apiEndpoint, selectedListId);
-
-    showStatus(`✓ Sent ${sentCount} profiles`, 'success');
-
-  } catch (error) {
-    console.error(error);
-    showStatus(`Error: ${error.message}`, 'error');
-  } finally {
-    document.getElementById('extract').disabled = false;
-  }
-});

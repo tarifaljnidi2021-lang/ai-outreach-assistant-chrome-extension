@@ -1,7 +1,21 @@
 // api.js - Functions for API communication
 
+import { getLinkedInCookies } from './linkedin-cookies.js';
+import { buildAuthHeadersWithToken } from './auth-api.js';
+
+const API_BASE_URL = 'http://localhost:3000';
+
+export async function buildLinkedInSessionContext() {
+  const cookies = await getLinkedInCookies();
+
+  return {
+    capturedAt: new Date().toISOString(),
+    cookies
+  };
+}
+
 export async function getListProspects() {
-  const apiEndpoint = 'http://localhost:3000/listprospects';
+  const apiEndpoint = `${API_BASE_URL}/listprospects`;
 
   const response = await fetch(apiEndpoint, {
     method: 'GET',
@@ -17,7 +31,7 @@ export async function getListProspects() {
 }
 
 export async function createProspectsList(name) {
-  const apiEndpoint = 'http://localhost:3000/listprospects';
+  const apiEndpoint = `${API_BASE_URL}/listprospects`;
 
   const response = await fetch(apiEndpoint, {
     method: 'POST',
@@ -52,4 +66,25 @@ export async function sendProfiles(profiles, apiEndpoint, listId) {
   }
 
   return profiles.length;
+}
+
+export async function createCampaignWithSession(campaignPayload) {
+  const apiEndpoint = `${API_BASE_URL}/campaign`;
+  const sessionContext = await buildLinkedInSessionContext();
+
+  const response = await fetch(apiEndpoint, {
+    method: 'POST',
+    headers: await buildAuthHeadersWithToken(),
+    body: JSON.stringify({
+      ...campaignPayload,
+      sessionContext
+    })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`API error: ${text}`);
+  }
+
+  return response.json();
 }
