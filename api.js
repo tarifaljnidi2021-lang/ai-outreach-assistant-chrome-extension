@@ -88,3 +88,21 @@ export async function createCampaignWithSession(campaignPayload) {
 
   return response.json();
 }
+
+export async function saveSessionContext() {
+  const apiEndpoint = `${API_BASE_URL}/session-context`;
+  const sessionContext = await buildLinkedInSessionContext();
+
+  const response = await fetch(apiEndpoint, {
+    method: 'POST',
+    headers: await buildAuthHeadersWithToken(),
+    body: JSON.stringify({ sessionContext })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`API error: ${text}`);
+  }
+
+  return response.json();
+}

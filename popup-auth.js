@@ -1,5 +1,6 @@
 import { getAuthToken, clearAuthToken } from './auth-storage.js';
 import { loginUser } from './auth-api.js';
+import { saveSessionContext } from './api.js';
 import { showAuthSection, showMainSection } from './popup-view.js';
 
 export function initAuthHandlers({ onAuthenticated }) {
@@ -29,6 +30,10 @@ export function initAuthHandlers({ onAuthenticated }) {
 
       try {
         await loginUser(email, password);
+
+        // Keep backend session scoped to the same authenticated user token.
+        await saveSessionContext();
+
         if (statusDiv) {
           statusDiv.textContent = '✓ Logged in successfully!';
           statusDiv.className = 'success';
