@@ -1,12 +1,31 @@
-// extractor.js - LinkedIn profile extraction logic
+// extractor.js
 
 export const extractFunc = async (maxCountArg = 100) => {
   const delay = ms => new Promise(res => setTimeout(res, ms));
 
+  const maxCount =
+    typeof maxCountArg === 'number'
+      ? maxCountArg
+      : parseInt(maxCountArg, 10) || 100;
+
+  console.log('🚀 extractor started');
+  console.log('maxCount:', maxCount);
+
   const autoScroll = async () => {
-    for (let i = 0; i < 6; i++) {
-      window.scrollBy(0, window.innerHeight);
-      await delay(800);
+    let lastHeight = 0;
+
+    for (let i = 0; i < 10; i++) {
+      window.scrollTo(0, document.body.scrollHeight);
+
+      await delay(1200);
+
+      const newHeight = document.body.scrollHeight;
+
+      if (newHeight === lastHeight) {
+        break;
+      }
+
+      lastHeight = newHeight;
     }
   };
 
@@ -14,99 +33,106 @@ export const extractFunc = async (maxCountArg = 100) => {
     const results = [];
     const seen = new Set();
 
-    const anchors = Array.from(
-       document.querySelectorAll('a[href*="/in/"]:not([href*="miniProfile"])')
+    // ALL linkedin profile links currently visible
+    const profileLinks = Array.from(
+      document.querySelectorAll('a[href*="/in/"]')
     );
 
-    anchors.forEach(linkEl => {
-      const profileUrl = (linkEl.href || '').split('?')[0];
+    console.log('found links:', profileLinks.length);
 
-      if (!profileUrl || !/\/in\//i.test(profileUrl)) return;
-      if (seen.has(profileUrl)) return;
+    profileLinks.forEach(link => {
+      try {
+        if (!link.offsetParent) return;
 
-      let name =
-        (linkEl.innerText || linkEl.textContent || '')
-          .replace(/\u00A0/g, ' ')
-          .trim()
-          .split('\n')[0]
-          .trim();
+        const profileUrl = (link.href || '').split('?')[0];
 
-      if (!name || name.length < 2) return;
+        if (!profileUrl.includes('/in/')) return;
 
-      let imageSrc = '';
-      let node = linkEl;
+        if (seen.has(profileUrl)) return;
 
-      // Walk up a few levels and try to find the card's profile photo.
-      for (let i = 0; i < 8 && node && !imageSrc; i++) {
-        node = node.parentElement;
-        if (!node) break;
+        // Try to find nearest card/container
+        const card =
+          link.closest('li') ||
+          link.closest('.entity-result') ||
+          link.closest('.reusable-search__result-container') ||
+          link.parentElement;
 
-        const imgs = Array.from(node.querySelectorAll('img[src]'));
+        if (!card) return;
 
-        const bestImg =
-          imgs.find(img => /profile-(displayphoto|framedphoto)/i.test(img.src || '')) ||
-          imgs.find(img => ((img.alt || '').trim().toLowerCase() === name.toLowerCase())) ||
-          imgs.find(img => (img.src || '').startsWith('http'));
+        // Get visible text
+        const textNodes = Array.from(
+          card.querySelectorAll('span, div')
+        )
+          .map(el => (el.innerText || '').trim())
+          .filter(Boolean);
 
-        if (bestImg) {
-          imageSrc = bestImg.src || '';
+        let name = '';
+
+        // Find probable person name
+        for (const txt of textNodes) {
+          if (
+            txt.length > 2 &&
+            txt.length < 80 &&
+            /^[A-Za-zÀ-ÿ\s'.-]+$/.test(txt)
+          ) {
+            name = txt;
+            break;
+          }
         }
+
+        if (!name) {
+          name =
+            link.innerText?.trim() ||
+            link.textContent?.trim() ||
+            '';
+        }
+
+        name = name.replace(/\s+/g, ' ').trim();
+
+        if (!name || name.length < 2) return;
+
+        // image
+        const img = card.querySelector('img');
+
+        const imageSrc = img?.src || '';
+
+        seen.add(profileUrl);
+
+        results.push({
+          name,
+          profile_url: profileUrl,
+          img_src: imageSrc,
+        });
+      } catch (err) {
+        console.error('extract error', err);
       }
-
-      seen.add(profileUrl);
-
-      results.push({
-        name,
-        profile_url: profileUrl,
-        img_src: imageSrc
-      });
     });
 
     return results;
   };
 
-  const getNextButton = () => {
-    return document.querySelector(
-      'button[data-testid="pagination-controls-next-button-visible"]'
-    );
-  };
-
   const allResults = [];
   const globalSeen = new Set();
-  const maxCount = typeof maxCountArg === 'number' ? maxCountArg : 100;
-  let page = 1;
 
-  while (allResults.length < maxCount) {
-    console.log(`📄 Page ${page}`);
+  await autoScroll();
 
-    await autoScroll();
-    await delay(1000);
+  await delay(2000);
 
-    const profiles = extractProfiles();
+  const profiles = extractProfiles();
 
-    profiles.forEach(p => {
-      if (!globalSeen.has(p.profile_url) && allResults.length < maxCount) {
-        globalSeen.add(p.profile_url);
-        allResults.push(p);
-      }
-    });
+  console.log('profiles extracted:', profiles);
 
-    if (allResults.length >= maxCount) break;
-
-    const nextBtn = getNextButton();
-
-    if (!nextBtn || nextBtn.disabled) {
-      console.log('⛔ No more pages');
-      break;
+  profiles.forEach(profile => {
+    if (
+      !globalSeen.has(profile.profile_url) &&
+      allResults.length < maxCount
+    ) {
+      globalSeen.add(profile.profile_url);
+      allResults.push(profile);
     }
+  });
 
-    nextBtn.click();
-    console.log('➡️ Clicking next...');
+  console.log('FINAL:', allResults);
 
-    await delay(1000);
-    page += 1;
-  }
-
-  console.log('FINAL RESULTS:', allResults.length);
-  return allResults;
+  return allResults.slice(0, maxCount);
 };
