@@ -1,138 +1,327 @@
 // extractor.js
 
 export const extractFunc = async (maxCountArg = 100) => {
-  const delay = ms => new Promise(res => setTimeout(res, ms));
+  // -----------------------------------
+  // HELPERS
+  // -----------------------------------
+
+  const delay = (ms) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  const cleanText = (txt = "") =>
+    txt.replace(/\s+/g, " ").trim();
 
   const maxCount =
-    typeof maxCountArg === 'number'
+    typeof maxCountArg === "number"
       ? maxCountArg
       : parseInt(maxCountArg, 10) || 100;
 
-  console.log('🚀 extractor started');
-  console.log('maxCount:', maxCount);
+  console.log("🚀 extractor started");
+  console.log("🎯 target count:", maxCount);
 
-  const autoScroll = async () => {
-    let lastHeight = 0;
+  // -----------------------------------
+  // SCROLL
+  // -----------------------------------
 
-    for (let i = 0; i < 10; i++) {
-      window.scrollTo(0, document.body.scrollHeight);
+const autoScroll = async () => {
+  let lastHeight = 0;
 
-      await delay(1200);
+  for (let i = 0; i < 10; i++) {
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: 'smooth',
+    });
 
-      const newHeight = document.body.scrollHeight;
+    await delay(2000);
 
-      if (newHeight === lastHeight) {
-        break;
-      }
+    const newHeight =
+      document.body.scrollHeight;
 
-      lastHeight = newHeight;
+    console.log(
+      `📜 scroll iteration ${i + 1}`,
+      newHeight
+    );
+
+    // no more content loaded
+    if (newHeight === lastHeight) {
+      console.log('✅ reached page bottom');
+      break;
     }
-  };
 
-  const extractProfiles = () => {
+    lastHeight = newHeight;
+  }
+};
+
+  // -----------------------------------
+  // PAGINATION
+  // -----------------------------------
+
+const goToNextPage = async () => {
+  const nextButton = document.querySelector(
+    '.artdeco-pagination__button--next'
+  );
+
+  console.log(
+    'next button:',
+    nextButton
+  );
+
+  if (!nextButton) {
+    console.log('❌ next button not found');
+    return false;
+  }
+
+  if (
+    nextButton.disabled ||
+    nextButton.hasAttribute('disabled')
+  ) {
+    console.log('⛔ next disabled');
+    return false;
+  }
+
+  console.log('➡️ clicking next');
+
+  nextButton.click();
+
+  // wait linkedin rerender
+  await delay(6000);
+
+  // reset top
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  });
+
+  await delay(2000);
+
+  return true;
+};
+
+  // -----------------------------------
+  // PROFILE EXTRACTION
+  // -----------------------------------
+
+  const extractProfiles = async () => {
     const results = [];
     const seen = new Set();
 
-    // ALL linkedin profile links currently visible
-    const profileLinks = Array.from(
-      document.querySelectorAll('a[href*="/in/"]')
+    const cards = Array.from(
+      document.querySelectorAll(
+        "[data-chameleon-result-urn]"
+      )
     );
 
-    console.log('found links:', profileLinks.length);
+    console.log("🧩 cards found:", cards.length);
 
-    profileLinks.forEach(link => {
+    cards.forEach((card, index) => {
       try {
-        if (!link.offsetParent) return;
+        // ---------------------------------
+        // PROFILE URL
+        // ---------------------------------
 
-        const profileUrl = (link.href || '').split('?')[0];
+        const profileLink = card.querySelector(
+          'a[href*="/in/"]'
+        );
 
-        if (!profileUrl.includes('/in/')) return;
+        if (!profileLink?.href) {
+          console.log(
+            `❌ card ${index}: missing profile URL`
+          );
+          return;
+        }
 
-        if (seen.has(profileUrl)) return;
+        const profile_url = profileLink.href
+          .split("?")[0]
+          .trim();
 
-        // Try to find nearest card/container
-        const card =
-          link.closest('li') ||
-          link.closest('.entity-result') ||
-          link.closest('.reusable-search__result-container') ||
-          link.parentElement;
+        if (
+          !profile_url ||
+          !profile_url.includes("/in/")
+        ) {
+          console.log(
+            `❌ card ${index}: invalid profile URL`
+          );
+          return;
+        }
 
-        if (!card) return;
+        if (seen.has(profile_url)) {
+          console.log(
+            `⚠️ duplicate skipped: ${profile_url}`
+          );
+          return;
+        }
 
-        // Get visible text
-        const textNodes = Array.from(
-          card.querySelectorAll('span, div')
-        )
-          .map(el => (el.innerText || '').trim())
-          .filter(Boolean);
+        // ---------------------------------
+        // NAME
+        // ---------------------------------
 
-        let name = '';
+        let name = "";
 
-        // Find probable person name
-        for (const txt of textNodes) {
-          if (
-            txt.length > 2 &&
-            txt.length < 80 &&
-            /^[A-Za-zÀ-ÿ\s'.-]+$/.test(txt)
-          ) {
-            name = txt;
-            break;
-          }
+        const nameEl =
+          card.querySelector(
+            '.t-16 a span[aria-hidden="true"]'
+          ) ||
+          card.querySelector(
+            'span[aria-hidden="true"]'
+          );
+
+        if (nameEl) {
+          name = cleanText(nameEl.textContent);
+        }
+
+        // fallback from image alt
+        if (!name) {
+          name = cleanText(
+            card.querySelector("img")?.alt || ""
+          );
         }
 
         if (!name) {
-          name =
-            link.innerText?.trim() ||
-            link.textContent?.trim() ||
-            '';
+          name = "Unknown";
         }
 
-        name = name.replace(/\s+/g, ' ').trim();
+        // ---------------------------------
+        // TITLE
+        // ---------------------------------
 
-        if (!name || name.length < 2) return;
+        let title = "";
 
-        // image
-        const img = card.querySelector('img');
+        const titleEl = card.querySelector(
+          ".t-14.t-black.t-normal"
+        );
 
-        const imageSrc = img?.src || '';
+        if (titleEl) {
+          title = cleanText(titleEl.textContent);
+        }
 
-        seen.add(profileUrl);
+        // ---------------------------------
+        // LOCATION
+        // ---------------------------------
+
+        let location = "";
+
+        const locationEls = Array.from(
+          card.querySelectorAll(".t-14.t-normal")
+        );
+
+        if (locationEls.length > 0) {
+          location = cleanText(
+            locationEls[0].textContent
+          );
+        }
+
+        // ---------------------------------
+        // IMAGE
+        // ---------------------------------
+
+        let img_src = "";
+
+        const imgEl = card.querySelector("img");
+
+        if (imgEl?.src) {
+          img_src = imgEl.src;
+        }
+
+        // ---------------------------------
+        // SAVE
+        // ---------------------------------
+
+        seen.add(profile_url);
 
         results.push({
           name,
-          profile_url: profileUrl,
-          img_src: imageSrc,
+          title,
+          location,
+          profile_url,
+          img_src,
         });
       } catch (err) {
-        console.error('extract error', err);
+        console.error(
+          `❌ card ${index} extraction error`,
+          err
+        );
       }
     });
+
+    console.log(
+      "📦 FINAL EXTRACTED:",
+      results.length
+    );
 
     return results;
   };
 
+  // -----------------------------------
+  // MAIN LOOP
+  // -----------------------------------
+
   const allResults = [];
   const globalSeen = new Set();
 
-  await autoScroll();
+  while (allResults.length < maxCount) {
+    console.log(
+      `\n📄 START PAGE | ${allResults.length}/${maxCount}`
+    );
 
-  await delay(2000);
+    // load lazy cards
+    await autoScroll();
 
-  const profiles = extractProfiles();
+    await delay(2000);
 
-  console.log('profiles extracted:', profiles);
+    // retry extraction
+    let pageResults = [];
 
-  profiles.forEach(profile => {
-    if (
-      !globalSeen.has(profile.profile_url) &&
-      allResults.length < maxCount
-    ) {
-      globalSeen.add(profile.profile_url);
-      allResults.push(profile);
+    for (let retry = 0; retry < 5; retry++) {
+      pageResults = await extractProfiles();
+
+      if (pageResults.length > 0) {
+        break;
+      }
+
+      console.log(
+        `⏳ retry ${retry + 1} waiting render`
+      );
+
+      await delay(2000);
     }
-  });
 
-  console.log('FINAL:', allResults);
+    console.log(
+      `📦 page extracted: ${pageResults.length}`
+    );
+
+    // merge unique profiles
+    for (const profile of pageResults) {
+      if (
+        !globalSeen.has(profile.profile_url) &&
+        allResults.length < maxCount
+      ) {
+        globalSeen.add(profile.profile_url);
+        allResults.push(profile);
+      }
+    }
+
+    console.log(
+      `✅ TOTAL COLLECTED: ${allResults.length}/${maxCount}`
+    );
+
+    // enough profiles
+    if (allResults.length >= maxCount) {
+      break;
+    }
+
+    // next page
+    const moved = await goToNextPage();
+
+    if (!moved) {
+      console.log("⛔ no more pages");
+      break;
+    }
+  }
+
+  console.log(
+    "🎉 FINAL RESULTS:",
+    allResults.length
+  );
 
   return allResults.slice(0, maxCount);
 };
