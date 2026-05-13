@@ -1,8 +1,6 @@
 import { showStatus } from './utils.js';
-import { sendProfiles } from './api.js';
-import { extractFunc } from './extractor.js';
 
-export function initMainActionHandlers() {
+export async function initMainActionHandlers() {
   const openTalinemButton = document.getElementById('open-talinem');
   if (openTalinemButton) {
     openTalinemButton.addEventListener('click', async () => {
@@ -17,6 +15,62 @@ export function initMainActionHandlers() {
 
   const extractButton = document.getElementById('extract');
   if (extractButton) {
+    let statusInterval = null;
+
+    const stopStatusPolling = () => {
+      if (statusInterval) {
+        clearInterval(statusInterval);
+        statusInterval = null;
+      }
+    };
+
+    const startStatusPolling = () => {
+      stopStatusPolling();
+      statusInterval = setInterval(async () => {
+        try {
+          const response = await chrome.runtime.sendMessage({ type: 'GET_EXTRACTION_STATUS' });
+          if (!response?.active) {
+            stopStatusPolling();
+            extractButton.disabled = false;
+            // Load and clear last success status if available
+            const { lastStatus } = await chrome.storage.local.get('lastStatus');
+            if (lastStatus) {
+              showStatus(lastStatus.message, lastStatus.type);
+              await chrome.storage.local.remove('lastStatus');
+            }
+          }
+        } catch (error) {
+          console.error('Polling failed:', error);
+          stopStatusPolling();
+          extractButton.disabled = false;
+        }
+      }, 1000);
+    };
+
+    const checkExtractionStatus = async () => {
+      try {
+        const response = await chrome.runtime.sendMessage({ type: 'GET_EXTRACTION_STATUS' });
+        if (response?.active) {
+          showStatus('Extraction still running in background...', 'loading');
+          extractButton.disabled = true;
+          startStatusPolling();
+        } else {
+          extractButton.disabled = false;
+          // Load and clear last success status if available
+          const { lastStatus } = await chrome.storage.local.get('lastStatus');
+          if (lastStatus) {
+            showStatus(lastStatus.message, lastStatus.type);
+            await chrome.storage.local.remove('lastStatus');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to get extraction status:', error);
+        extractButton.disabled = false;
+      }
+    };
+
+    await checkExtractionStatus();
+
     extractButton.addEventListener('click', async () => {
       const apiEndpoint = 'http://localhost:3000/extract';
       const countInput = document.getElementById('count');
@@ -29,32 +83,26 @@ export function initMainActionHandlers() {
         return;
       }
 
-      showStatus('Extracting profiles...', 'loading');
+      showStatus('Extraction started in background...', 'loading');
       extractButton.disabled = true;
+      stopStatusPolling();
+      // Clear last status when starting new extraction
+      await chrome.storage.local.remove('lastStatus');
 
       try {
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
+        const response = await chrome.runtime.sendMessage({
+          type: 'START_EXTRACTION',
+          maxCount,
+          selectedListId,
+          apiEndpoint,
         });
 
-        const [result] = await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: extractFunc,
-          args: [maxCount],
-        });
-
-        const profiles = result?.result || [];
-
-        if (!profiles.length) {
-          showStatus('No profiles found. Scroll down and try again.', 'error');
-          extractButton.disabled = false;
-          return;
+        if (!response?.success) {
+          throw new Error(response?.error || 'Extraction failed');
         }
 
-        showStatus(`Sending ${profiles.length} profiles...`, 'loading');
-        const sentCount = await sendProfiles(profiles, apiEndpoint, selectedListId);
-        showStatus(`✓ Sent ${sentCount} profiles`, 'success');
+        const successMessage = `✓ Sent ${response.sentCount} profiles for ${selectedListId}`;
+        showStatus(successMessage, 'success');
       } catch (error) {
         console.error(error);
         showStatus(`Error: ${error.message}`, 'error');

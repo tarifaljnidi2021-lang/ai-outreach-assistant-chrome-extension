@@ -3,13 +3,16 @@
   "name": "LinkedIn Lead Extractor",
   "version": "1.0",
   "description": "Extract LinkedIn search results and send to API",
-  "permissions": ["activeTab", "scripting", "cookies"],
-    "permissions": ["activeTab", "scripting", "cookies", "storage"],
+  "permissions": ["activeTab", "scripting", "cookies", "storage"],
   "host_permissions": [
     "https://www.linkedin.com/*",
     "http://*/*",
     "https://*/*"
   ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "action": {
     "default_popup": "popup.html"
   }

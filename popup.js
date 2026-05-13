@@ -16,6 +16,6 @@ async function onAuthenticated() {
 }
 
 initAuthHandlers({ onAuthenticated });
-initMainActionHandlers();
+await initMainActionHandlers();
 checkAuth({ onAuthenticated });
 

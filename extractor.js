@@ -84,7 +84,7 @@ const goToNextPage = async () => {
   nextButton.click();
 
   // wait linkedin rerender
-  await delay(6000);
+  await delay(3000);
 
   // reset top
   window.scrollTo({
@@ -92,7 +92,7 @@ const goToNextPage = async () => {
     behavior: 'smooth',
   });
 
-  await delay(2000);
+  await delay(1000);
 
   return true;
 };
@@ -266,7 +266,7 @@ const goToNextPage = async () => {
     // load lazy cards
     await autoScroll();
 
-    await delay(2000);
+    await delay(1000);
 
     // retry extraction
     let pageResults = [];
@@ -282,7 +282,7 @@ const goToNextPage = async () => {
         `⏳ retry ${retry + 1} waiting render`
       );
 
-      await delay(2000);
+      await delay(1000);
     }
 
     console.log(
