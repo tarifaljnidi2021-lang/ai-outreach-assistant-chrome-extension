@@ -16,6 +16,7 @@ export async function initMainActionHandlers() {
   const extractButton = document.getElementById('extract');
   if (extractButton) {
     let statusInterval = null;
+    let extractionStartedLocally = false;
 
     const stopStatusPolling = () => {
       if (statusInterval) {
@@ -30,6 +31,10 @@ export async function initMainActionHandlers() {
         try {
           const response = await chrome.runtime.sendMessage({ type: 'GET_EXTRACTION_STATUS' });
           if (!response?.active) {
+            if (extractionStartedLocally) {
+              // The extraction has been requested, but the background may not be active yet.
+              return;
+            }
             stopStatusPolling();
             extractButton.disabled = false;
             // Load and clear last success status if available
@@ -51,18 +56,20 @@ export async function initMainActionHandlers() {
           stopStatusPolling();
           extractButton.disabled = false;
         }
-      }, 1000);
+      }, 500);
     };
 
     const checkExtractionStatus = async () => {
       try {
         const response = await chrome.runtime.sendMessage({ type: 'GET_EXTRACTION_STATUS' });
+        console.log('📊 Status check response:', response);
         if (response?.active) {
           const listSelect = document.getElementById('list-select');
           const listName = listSelect?.selectedOptions[0]?.text || 'Unknown List';
           const current = response.current || 0;
           const total = response.total || 100;
           const percentage = Math.round((current / total) * 100);
+          console.log(`📈 Progress: ${current}/${total} (${percentage}%)`);
           showStatus(`Extracting for ${listName}: ${current}/${total}`, 'loading', percentage);
           extractButton.disabled = true;
           startStatusPolling();
@@ -111,7 +118,9 @@ export async function initMainActionHandlers() {
       const listName = listSelect?.selectedOptions[0]?.text || 'Unknown List';
       showStatus(`Extracting for ${listName}: 0/${maxCount}`, 'loading', 0);
       extractButton.disabled = true;
+      extractionStartedLocally = true;
       stopStatusPolling();
+      startStatusPolling();
       // Clear last status when starting new extraction
       await chrome.storage.local.remove('lastStatus');
 
@@ -133,6 +142,7 @@ export async function initMainActionHandlers() {
         console.error(error);
         showStatus(`Error: ${error.message}`, 'error');
       } finally {
+        extractionStartedLocally = false;
         extractButton.disabled = false;
       }
     });

@@ -69,8 +69,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'EXTRACTION_PROGRESS') {
+    console.log('📊 Progress update received:', message.current, '/', message.total);
     extractionState.current = message.current;
     extractionState.total = message.total;
+    sendResponse({ received: true });
     return true;
   }
 

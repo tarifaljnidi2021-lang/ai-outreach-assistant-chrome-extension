@@ -26,13 +26,13 @@ export const extractFunc = async (maxCountArg = 100) => {
 const autoScroll = async () => {
   let lastHeight = 0;
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 15; i++) {
     window.scrollTo({
       top: document.body.scrollHeight,
       behavior: 'smooth',
     });
 
-    await delay(2000);
+    await delay(1500);
 
     const newHeight =
       document.body.scrollHeight;
@@ -112,6 +112,13 @@ const goToNextPage = async () => {
     );
 
     console.log("🧩 cards found:", cards.length);
+    console.log("📍 page title:", document.title);
+    console.log("📍 page URL:", window.location.href);
+
+    if (cards.length === 0) {
+      console.warn("⚠️ No cards found with selector '[data-chameleon-result-urn]'");
+      console.warn("Available elements:", document.querySelectorAll('[class*="result"]').length);
+    }
 
     cards.forEach((card, index) => {
       try {
@@ -268,10 +275,10 @@ const goToNextPage = async () => {
 
     await delay(1000);
 
-    // retry extraction
+    // retry extraction with multiple attempts
     let pageResults = [];
 
-    for (let retry = 0; retry < 1; retry++) {
+    for (let retry = 0; retry < 3; retry++) {
       pageResults = await extractProfiles();
 
       if (pageResults.length > 0) {
@@ -279,10 +286,12 @@ const goToNextPage = async () => {
       }
 
       console.log(
-        `⏳ retry ${retry + 1} waiting render`
+        `⏳ retry ${retry + 1}/3 - scrolling more and waiting...`
       );
 
-      await delay(1000);
+      // Try scrolling more to load lazy cards
+      await autoScroll();
+      await delay(2000);
     }
 
     console.log(
@@ -304,12 +313,17 @@ const goToNextPage = async () => {
       `✅ TOTAL COLLECTED: ${allResults.length}/${maxCount}`
     );
 
-    // Send progress update
-    chrome.runtime.sendMessage({
-      type: 'EXTRACTION_PROGRESS',
-      current: allResults.length,
-      total: maxCount
-    });
+    // Send progress update via window.postMessage
+    try {
+      window.postMessage({
+        type: 'EXTRACTION_PROGRESS',
+        current: allResults.length,
+        total: maxCount
+      }, '*');
+      console.log(`📨 Progress message sent: ${allResults.length}/${maxCount}`);
+    } catch (err) {
+      console.log('Could not send progress:', err.message);
+    }
 
     // enough profiles
     if (allResults.length >= maxCount) {
