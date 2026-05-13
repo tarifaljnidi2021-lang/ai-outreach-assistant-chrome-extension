@@ -164,16 +164,24 @@ const goToNextPage = async () => {
 
         let name = "";
 
-        const nameEl =
-          card.querySelector(
-            '.t-16 a span[aria-hidden="true"]'
-          ) ||
-          card.querySelector(
-            'span[aria-hidden="true"]'
-          );
+        const profileNameAnchor = Array.from(
+          card.querySelectorAll('a[href*="/in/"]')
+        ).find(
+          (anchor) =>
+            anchor.textContent &&
+            cleanText(anchor.textContent).length > 0 &&
+            !anchor.querySelector('img')
+        );
 
-        if (nameEl) {
-          name = cleanText(nameEl.textContent);
+        if (profileNameAnchor) {
+          name = cleanText(profileNameAnchor.textContent);
+        }
+
+        // fallback from inline text nodes
+        if (!name) {
+          name = cleanText(
+            card.querySelector('span[dir="ltr"]')?.textContent || ""
+          );
         }
 
         // fallback from image alt
@@ -213,7 +221,7 @@ const goToNextPage = async () => {
 
         if (locationEls.length > 0) {
           location = cleanText(
-            locationEls[0].textContent
+            locationEls[locationEls.length - 1].textContent
           );
         }
 
