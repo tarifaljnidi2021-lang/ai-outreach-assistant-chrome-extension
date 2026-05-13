@@ -3,6 +3,8 @@ import { sendProfiles } from './api.js';
 
 const extractionState = {
   active: false,
+  current: 0,
+  total: 0,
 };
 
 async function performExtraction({ maxCount, selectedListId, apiEndpoint }) {
@@ -12,6 +14,8 @@ async function performExtraction({ maxCount, selectedListId, apiEndpoint }) {
   }
 
   extractionState.active = true;
+  extractionState.current = 0;
+  extractionState.total = maxCount;
 
   try {
     const [result] = await chrome.scripting.executeScript({
@@ -32,6 +36,8 @@ async function performExtraction({ maxCount, selectedListId, apiEndpoint }) {
     return { extractedCount: profiles.length, sentCount };
   } finally {
     extractionState.active = false;
+    extractionState.current = 0;
+    extractionState.total = 0;
   }
 }
 
@@ -56,7 +62,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_EXTRACTION_STATUS') {
     sendResponse({
       active: extractionState.active,
+      current: extractionState.current,
+      total: extractionState.total,
     });
+    return true;
+  }
+
+  if (message.type === 'EXTRACTION_PROGRESS') {
+    extractionState.current = message.current;
+    extractionState.total = message.total;
     return true;
   }
 

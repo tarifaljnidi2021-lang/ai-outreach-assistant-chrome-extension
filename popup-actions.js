@@ -38,6 +38,13 @@ export async function initMainActionHandlers() {
               showStatus(lastStatus.message, lastStatus.type);
               await chrome.storage.local.remove('lastStatus');
             }
+          } else {
+            const listSelect = document.getElementById('list-select');
+            const listName = listSelect?.selectedOptions[0]?.text || 'Unknown List';
+            const current = response.current || 0;
+            const total = response.total || 100;
+            const percentage = Math.round((current / total) * 100);
+            showStatus(`Extracting for ${listName}: ${current}/${total}`, 'loading', percentage);
           }
         } catch (error) {
           console.error('Polling failed:', error);
@@ -51,7 +58,12 @@ export async function initMainActionHandlers() {
       try {
         const response = await chrome.runtime.sendMessage({ type: 'GET_EXTRACTION_STATUS' });
         if (response?.active) {
-          showStatus('Extraction still running in background...', 'loading');
+          const listSelect = document.getElementById('list-select');
+          const listName = listSelect?.selectedOptions[0]?.text || 'Unknown List';
+          const current = response.current || 0;
+          const total = response.total || 100;
+          const percentage = Math.round((current / total) * 100);
+          showStatus(`Extracting for ${listName}: ${current}/${total}`, 'loading', percentage);
           extractButton.disabled = true;
           startStatusPolling();
         } else {
@@ -83,7 +95,21 @@ export async function initMainActionHandlers() {
         return;
       }
 
-      showStatus('Extraction started in background...', 'loading');
+      // Check if current URL is on LinkedIn search results page
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab?.url || !tab.url.includes('https://www.linkedin.com/search/results/people/')) {
+          showStatus('No prospect to import here. You need to go to a LinkedIn page where there is prospects to import such as a search, a profile, or your connections.', 'error');
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to get tab URL:', error);
+        showStatus('Unable to verify LinkedIn page.', 'error');
+        return;
+      }
+
+      const listName = listSelect?.selectedOptions[0]?.text || 'Unknown List';
+      showStatus(`Extracting for ${listName}: 0/${maxCount}`, 'loading', 0);
       extractButton.disabled = true;
       stopStatusPolling();
       // Clear last status when starting new extraction
@@ -101,7 +127,7 @@ export async function initMainActionHandlers() {
           throw new Error(response?.error || 'Extraction failed');
         }
 
-        const successMessage = `✓ Sent ${response.sentCount} profiles for ${selectedListId}`;
+        const successMessage = `✓ Sent ${response.sentCount} profiles for ${listName}`;
         showStatus(successMessage, 'success');
       } catch (error) {
         console.error(error);

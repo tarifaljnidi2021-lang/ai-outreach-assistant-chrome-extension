@@ -271,7 +271,7 @@ const goToNextPage = async () => {
     // retry extraction
     let pageResults = [];
 
-    for (let retry = 0; retry < 5; retry++) {
+    for (let retry = 0; retry < 1; retry++) {
       pageResults = await extractProfiles();
 
       if (pageResults.length > 0) {
@@ -303,6 +303,13 @@ const goToNextPage = async () => {
     console.log(
       `✅ TOTAL COLLECTED: ${allResults.length}/${maxCount}`
     );
+
+    // Send progress update
+    chrome.runtime.sendMessage({
+      type: 'EXTRACTION_PROGRESS',
+      current: allResults.length,
+      total: maxCount
+    });
 
     // enough profiles
     if (allResults.length >= maxCount) {
