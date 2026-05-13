@@ -32,7 +32,7 @@ const autoScroll = async () => {
       behavior: 'smooth',
     });
 
-    await delay(1500);
+  //  await delay(1500);
 
     const newHeight =
       document.body.scrollHeight;
@@ -84,7 +84,7 @@ const goToNextPage = async () => {
   nextButton.click();
 
   // wait linkedin rerender
-  await delay(3000);
+  await delay(2000);
 
   // reset top
   window.scrollTo({
@@ -273,7 +273,7 @@ const goToNextPage = async () => {
     // load lazy cards
     await autoScroll();
 
-    await delay(1000);
+   // await delay(1000);
 
     // retry extraction with multiple attempts
     let pageResults = [];
@@ -291,7 +291,7 @@ const goToNextPage = async () => {
 
       // Try scrolling more to load lazy cards
       await autoScroll();
-      await delay(2000);
+    //  await delay(2000);
     }
 
     console.log(
