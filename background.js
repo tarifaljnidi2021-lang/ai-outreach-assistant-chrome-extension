@@ -7,7 +7,7 @@ const extractionState = {
   total: 0,
 };
 
-async function performExtraction({ maxCount, selectedListId, apiEndpoint }) {
+async function performExtraction({ maxCount, selectedListId, listName, apiEndpoint }) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) {
     throw new Error('Unable to find the active tab.');
@@ -30,7 +30,7 @@ async function performExtraction({ maxCount, selectedListId, apiEndpoint }) {
     }
 
     const sentCount = await sendProfiles(profiles, apiEndpoint, selectedListId);
-    const successMessage = `✓ Sent ${sentCount} profiles for ${selectedListId}`;
+    const successMessage = `✓ Sent ${sentCount} profiles for ${listName}`;
     // Store the success status
     await chrome.storage.local.set({ lastStatus: { message: successMessage, type: 'success' } });
     return { extractedCount: profiles.length, sentCount };

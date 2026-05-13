@@ -129,6 +129,7 @@ export async function initMainActionHandlers() {
           type: 'START_EXTRACTION',
           maxCount,
           selectedListId,
+          listName,
           apiEndpoint,
         });
 
