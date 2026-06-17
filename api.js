@@ -1,16 +1,19 @@
 // api.js - Functions for API communication
 
 import { getLinkedInCookies } from './linkedin-cookies.js';
+import { getUserAgent } from './user-agent.js';
 import { buildAuthHeadersWithToken } from './auth-api.js';
 
 const API_BASE_URL = 'http://localhost:3000';
 
 export async function buildLinkedInSessionContext() {
   const cookies = await getLinkedInCookies();
+  const userAgent = getUserAgent();
 
   return {
     capturedAt: new Date().toISOString(),
-    cookies
+    cookies,
+    userAgent
   };
 }
 

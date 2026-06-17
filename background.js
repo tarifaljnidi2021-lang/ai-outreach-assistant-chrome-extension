@@ -1,5 +1,9 @@
 import { extractFunc } from './extractor.js';
 import { sendProfiles } from './api.js';
+import { registerSessionSyncWorker } from './session-sync.js';
+
+// Register session sync worker
+registerSessionSyncWorker();
 
 const extractionState = {
   active: false,
