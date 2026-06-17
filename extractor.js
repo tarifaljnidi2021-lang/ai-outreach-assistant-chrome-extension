@@ -58,7 +58,7 @@ const autoScroll = async () => {
 
 const goToNextPage = async () => {
   const nextButton = document.querySelector(
-    '.artdeco-pagination__button--next'
+    'button[data-testid="pagination-controls-next-button-visible"]'
   );
 
   console.log(
@@ -107,7 +107,7 @@ const goToNextPage = async () => {
 
     const cards = Array.from(
       document.querySelectorAll(
-        "[data-chameleon-result-urn]"
+         'li.reusable-search__result-container, div[role="listitem"]'
       )
     );
 
@@ -126,9 +126,9 @@ const goToNextPage = async () => {
         // PROFILE URL
         // ---------------------------------
 
-        const profileLink = card.querySelector(
-          'a[href*="/in/"]'
-        );
+      const profileLink = card.querySelector(
+        'a[href*="/in/"]:not([aria-hidden="true"])'
+      ) || card.closest('a[href*="/in/"]');
 
         if (!profileLink?.href) {
           console.log(
