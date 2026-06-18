@@ -8,15 +8,25 @@ window.addEventListener('message', (event) => {
   // Check for progress messages
   if (event.data?.type === 'EXTRACTION_PROGRESS') {
     console.log('📨 Content script received progress:', event.data);
-    
-    // Relay to background script
-    chrome.runtime.sendMessage({
-      type: 'EXTRACTION_PROGRESS',
-      current: event.data.current,
-      total: event.data.total
-    }).catch(err => {
-      console.log('Could not send to background:', err);
-    });
+
+    if (typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.sendMessage === 'function') {
+      chrome.runtime.sendMessage(
+        {
+          type: 'EXTRACTION_PROGRESS',
+          current: event.data.current,
+          total: event.data.total,
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.warn('Content->Background sendMessage error:', chrome.runtime.lastError);
+          } else {
+            console.log('Content->Background response:', response);
+          }
+        }
+      );
+    } else {
+      console.warn('chrome.runtime.sendMessage is unavailable in content script; progress will not be relayed.');
+    }
   }
 });
 

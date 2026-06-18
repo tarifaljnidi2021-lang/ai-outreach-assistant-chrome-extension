@@ -11,6 +11,18 @@ const extractionState = {
   total: 0,
 };
 
+const persistExtractionState = () => {
+  try {
+    chrome.storage.local.set({ extractionState }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('Could not persist extraction state:', chrome.runtime.lastError);
+      }
+    });
+  } catch (err) {
+    console.warn('Could not persist extraction state (throw):', err);
+  }
+};
+
 async function performExtraction({ maxCount, selectedListId, listName, apiEndpoint }) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) {
@@ -20,6 +32,7 @@ async function performExtraction({ maxCount, selectedListId, listName, apiEndpoi
   extractionState.active = true;
   extractionState.current = 0;
   extractionState.total = maxCount;
+  persistExtractionState();
 
   try {
     const [result] = await chrome.scripting.executeScript({
@@ -42,6 +55,7 @@ async function performExtraction({ maxCount, selectedListId, listName, apiEndpoi
     extractionState.active = false;
     extractionState.current = 0;
     extractionState.total = 0;
+    persistExtractionState();
   }
 }
 
@@ -64,10 +78,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'GET_EXTRACTION_STATUS') {
-    sendResponse({
-      active: extractionState.active,
-      current: extractionState.current,
-      total: extractionState.total,
+    chrome.storage.local.get('extractionState', (result) => {
+      const stored = result?.extractionState;
+      if (stored && typeof stored.active !== 'undefined') {
+        sendResponse(stored);
+      } else {
+        sendResponse({
+          active: extractionState.active,
+          current: extractionState.current,
+          total: extractionState.total,
+        });
+      }
     });
     return true;
   }
@@ -76,6 +97,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('📊 Progress update received:', message.current, '/', message.total);
     extractionState.current = message.current;
     extractionState.total = message.total;
+    persistExtractionState();
     sendResponse({ received: true });
     return true;
   }

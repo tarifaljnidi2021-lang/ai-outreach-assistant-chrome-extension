@@ -321,16 +321,29 @@ const goToNextPage = async () => {
       `✅ TOTAL COLLECTED: ${allResults.length}/${maxCount}`
     );
 
-    // Send progress update via window.postMessage
+    const progressPayload = {
+      type: 'EXTRACTION_PROGRESS',
+      current: allResults.length,
+      total: maxCount,
+    };
+
     try {
-      window.postMessage({
-        type: 'EXTRACTION_PROGRESS',
-        current: allResults.length,
-        total: maxCount
-      }, '*');
-      console.log(`📨 Progress message sent: ${allResults.length}/${maxCount}`);
+      if (typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.sendMessage === 'function') {
+        chrome.runtime.sendMessage(progressPayload, (response) => {
+          if (chrome.runtime.lastError) {
+            console.warn('Direct runtime progress send failed:', chrome.runtime.lastError);
+            window.postMessage(progressPayload, '*');
+          } else {
+            console.log(`📨 Direct progress sent: ${allResults.length}/${maxCount}`, response);
+          }
+        });
+      } else {
+        window.postMessage(progressPayload, '*');
+        console.log(`📨 Fallback progress message sent: ${allResults.length}/${maxCount}`);
+      }
     } catch (err) {
-      console.log('Could not send progress:', err.message);
+      console.log('Could not send progress, using fallback:', err.message);
+      window.postMessage(progressPayload, '*');
     }
 
     // enough profiles
