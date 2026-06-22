@@ -33,7 +33,7 @@ export function registerSessionSyncWorker() {
   });
 
   // Periodic sync 
-  const SYNC_INTERVAL_MS =  60 * 1000;
+  const SYNC_INTERVAL_MS =  24 * 60 * 60 * 1000;
   setInterval(async () => {
     try {
       await saveSessionContext();

@@ -176,7 +176,7 @@ const goToNextPage = async () => {
         if (profileNameAnchor) {
           name = cleanText(profileNameAnchor.textContent);
         }
-
+/*
         // fallback from inline text nodes
         if (!name) {
           name = cleanText(
@@ -194,34 +194,31 @@ const goToNextPage = async () => {
         if (!name) {
           name = "Unknown";
         }
+*/
+        // ---------------------------------
+        // TITLE + LOCATION (position-based)
+        // The info div is always the div immediately after the profile photo
+        // figure. Within it: name is a direct <p> child (no wrapping div),
+        // while title and location are each inside a <div> child:
+        //   infoDiv > div > p > span  ← title (first), location (last)
+        // This avoids matching the snippet / mutual-connection sections
+        // that live outside the info div.
+        // ---------------------------------
 
-        // ---------------------------------
-        // TITLE
-        // ---------------------------------
+        const infoDiv = card.querySelector('figure + div');
+        const infoSpans = Array.from(
+          infoDiv?.querySelectorAll(':scope > div > p > span') || []
+        );
 
         let title = "";
-
-        const titleEl = card.querySelector(
-          ".t-14.t-black.t-normal"
-        );
-
-        if (titleEl) {
-          title = cleanText(titleEl.textContent);
+        if (infoSpans.length > 0) {
+          title = cleanText(infoSpans[0].textContent);
         }
 
-        // ---------------------------------
-        // LOCATION
-        // ---------------------------------
-
         let location = "";
-
-        const locationEls = Array.from(
-          card.querySelectorAll(".t-14.t-normal")
-        );
-
-        if (locationEls.length > 0) {
+        if (infoSpans.length > 1) {
           location = cleanText(
-            locationEls[locationEls.length - 1].textContent
+            infoSpans[infoSpans.length - 1].textContent
           );
         }
 
