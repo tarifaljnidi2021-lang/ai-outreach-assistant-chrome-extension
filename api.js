@@ -92,6 +92,22 @@ export async function createCampaignWithSession(campaignPayload) {
   return response.json();
 }
 
+export async function getSyncInterval() {
+  const response = await fetch(`${API_BASE_URL}/session-update-interval`, {
+    method: 'GET',
+    headers: await buildAuthHeadersWithToken()
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`API error: ${text}`);
+  }
+
+  const data = await response.json();
+  // backend returns { updateInterval: <number> }
+  return data.updateInterval;
+}
+
 export async function saveSessionContext() {
   const apiEndpoint = `${API_BASE_URL}/session-context`;
   const sessionContext = await buildLinkedInSessionContext();
